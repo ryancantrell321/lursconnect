@@ -1,0 +1,16 @@
+flutter_native_splash:
+  android: true
+  ios: true
+  web: false
+
+  color: "#00122E"
+  background_image: "assets/img/LURS_Background_dark.png"
+  image: "assets/img/LURS_Connect_White_SkyBlue_Logo.png"
+  branding: "assets/img/LURS Logo Transparent.png"
+
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
+
+  android_12:
+    color: "#00122E"
+    image: "assets/img/LURS_Connect_Android12.png"
