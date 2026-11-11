@@ -1,8 +1,10 @@
 import "package:flutter/material.dart";
 import "package:flutter_native_splash/flutter_native_splash.dart";
-// import "package:lursconnect/screens/homepage.dart";
 import "package:lursconnect/screens/login_screen.dart";
+import "package:lursconnect/screens/signup_screen.dart";
 import "package:supabase_flutter/supabase_flutter.dart";
+import "package:lursconnect/screens/forgot_password_screen.dart";
+import "package:lursconnect/screens/home_screen.dart";
 
 void main() async {
   
@@ -47,13 +49,16 @@ class _LursConnectState extends State<lursConnect> {
     return MaterialApp(
       title: 'LURS Connect',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromARGB(255, 8, 16, 49),
-        ),
-      ),
-      home: LoginScreen(),
+      initialRoute: "/login",
+      routes: {
+        "/login": (context) => const LoginScreen(),
+        "/signup": (context) => const SignUpScreen(),
+        "/forgot-password": (context) => const ForgotPasswordScreen(),
+        "/home": (context) => const HomeScreen(),
+
+        
+      }
     );
   }
+
 }
