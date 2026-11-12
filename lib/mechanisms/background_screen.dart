@@ -4,12 +4,14 @@ class BackgroundScreen extends StatelessWidget{
   
   // allow acceptance of other widgets
   final Widget child;
-  const BackgroundScreen({super.key, required this.child});
+  final Widget? drawer;
+  const BackgroundScreen({super.key, required this.child, this.drawer});
   
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: drawer,
       body: Stack(
         fit: StackFit.expand,
         children: [

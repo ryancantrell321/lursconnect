@@ -54,8 +54,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    if (passwordController.text.length < 6) {
-      showMessage(context, 'Password must be at least 6 characters');
+    if (passwordController.text.length < 8) {
+      showMessage(context, 'Password must be at least 8 characters');
       return;
     }
 

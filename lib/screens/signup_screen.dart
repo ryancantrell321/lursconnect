@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../mechanisms/auth_helpers.dart';
+import '../mechanisms/auth_validator.dart';
 import "package:supabase_flutter/supabase_flutter.dart";
 
 
@@ -18,6 +19,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final studentIdController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmController = TextEditingController();
+  final verificationCodeController = TextEditingController();
+
+  bool awaitingEmailCode = false;
+  bool isSubmitting = false;
 
   String? committeeYear;
   String? committeeType;
@@ -63,65 +68,134 @@ class _SignUpScreenState extends State<SignUpScreen> {
       studentIdController,
       passwordController,
       confirmController,
+      verificationCodeController,
     ]) {
       c.dispose();
     }
     super.dispose();
   }
 
-  void signUp() {
-    Future<void> signUp() async {
-      bool textEmpty = anyEmpty([
-        nameController,
-        emailController,
-        phoneController,
-        dobController,
-        studentIdController,
-        passwordController,
-        confirmController,
-      ]);
+  Future<void> signUp() async {
+    if (isSubmitting) return;
 
-      if (textEmpty ||
-          committeeYear == null ||
-          committeeType == null ||
-          position == null) {
-        showMessage(context, 'Please fill in all fields');
-        return;
-      }
+    bool textEmpty = anyEmpty([
+      nameController,
+      emailController,
+      phoneController,
+      dobController,
+      studentIdController,
+      passwordController,
+      confirmController,
+    ]);
 
-      if (passwordController.text.length < 8) {
-        showMessage(context, 'Password must be at least 8 characters');
-        return;
-      }
+    if (textEmpty ||
+        committeeYear == null ||
+        committeeType == null ||
+        position == null) {
+      showMessage(context, 'Please fill in all fields');
+      return;
+    }
 
-      if (passwordController.text != confirmController.text) {
-        showMessage(context, 'Passwords do not match');
-        return;
-      }
+    // Ask the shared validator to check each free-text value before signup.
+    final validationMessage = AuthValidator.name(nameController.text) ??
+        AuthValidator.email(emailController.text) ??
+        AuthValidator.phone(phoneController.text) ??
+        AuthValidator.studentId(studentIdController.text) ??
+        AuthValidator.password(passwordController.text);
+    if (validationMessage != null) {
+      showMessage(context, validationMessage);
+      return;
+    }
 
-      try {
-        await supabase.auth.signUp(
-          email: emailController.text.trim(),
-          password: passwordController.text,
-          // Extra info is saved with the user as metadata
-          data: {
-            'full_name': nameController.text.trim(),
-            'phone': phoneController.text.trim(),
-            'dob': dobController.text,
-            'student_id': studentIdController.text.trim(),
-            'committee_year': committeeYear,
-            'committee_type': committeeType,
-            'position': position,
-          },
+    if (passwordController.text != confirmController.text) {
+      showMessage(context, 'Passwords do not match');
+      return;
+    }
+
+    setState(() => isSubmitting = true);
+    try {
+      final response = await supabase.auth.signUp(
+        email: emailController.text.trim(),
+        password: passwordController.text,
+        // Extra info is saved with the user as metadata
+        data: {
+          'full_name': nameController.text.trim(),
+          'phone': phoneController.text.trim(),
+          'dob': dobController.text,
+          'student_id': studentIdController.text.trim(),
+          'committee_year': committeeYear,
+          'committee_type': committeeType,
+          'position': position,
+        },
+      );
+
+      if (!mounted) return;
+      if (response.session != null) {
+        await supabase.auth.signOut();
+        if (!mounted) return;
+        showMessage(
+          context,
+          'Email confirmation is disabled in Supabase. Enable it before testing signup codes.',
         );
-
-        if (!mounted) return;
-        showMessage(context, 'Account created! Waiting for admin approval.');
         goToSignIn(context);
-      } on AuthException catch (e) {
-        if (!mounted) return;
-        showMessage(context, e.message);
+        return;
       }
+
+      setState(() => awaitingEmailCode = true);
+      showMessage(context, 'Verification code sent to your email.');
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      showMessage(context, e.message);
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
+  }
+
+  Future<void> verifyEmailCode() async {
+    if (isSubmitting) return;
+
+    if (verificationCodeController.text.trim().isEmpty) {
+      showMessage(context, 'Please enter the verification code');
+      return;
+    }
+
+    setState(() => isSubmitting = true);
+    try {
+      await supabase.auth.verifyOTP(
+        email: emailController.text.trim(),
+        token: verificationCodeController.text.trim(),
+        type: OtpType.signup,
+      );
+
+      await supabase.auth.signOut();
+      if (!mounted) return;
+      showMessage(context, 'Email confirmed. Your account is ready.');
+      goToSignIn(context);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      showMessage(context, e.message);
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
+    }
+  }
+
+  Future<void> resendEmailCode() async {
+    if (isSubmitting) return;
+
+    setState(() => isSubmitting = true);
+    try {
+      await supabase.auth.resend(
+        type: OtpType.signup,
+        email: emailController.text.trim(),
+      );
+
+      if (!mounted) return;
+      showMessage(context, 'A new verification code was sent.');
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      showMessage(context, e.message);
+    } finally {
+      if (mounted) setState(() => isSubmitting = false);
     }
   }
 
@@ -134,56 +208,90 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return buildAuthScreen(
       context: context,
       isSignIn: false,
-      title: 'Create Account',
-      children: [
-        // PERSONAL INFO
-        buildTextField(nameController, 'Full Name', Icons.person),
-        buildTextField(emailController, 'Email', Icons.email,
-            type: TextInputType.emailAddress),
-        buildTextField(phoneController, 'Phone Number', Icons.phone,
-            type: TextInputType.phone),
-        buildTextField(dobController, 'Date of Birth', Icons.cake,
-            readOnly: true, onTap: () => pickDate(context, dobController)),
-        buildTextField(studentIdController, 'LU Student ID', Icons.badge,
-            type: TextInputType.number),
+      title: awaitingEmailCode ? 'Verify Email' : 'Create Account',
+      showTabs: !awaitingEmailCode,
+      children: awaitingEmailCode
+          ? [
+              Text(
+                'Enter the code sent to ${emailController.text.trim()}',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              buildTextField(
+                verificationCodeController,
+                'Email Verification Code',
+                Icons.pin,
+                type: TextInputType.number,
+              ),
+              buildPrimaryButton(
+                isSubmitting ? 'Verifying...' : 'Confirm Email',
+                verifyEmailCode,
+              ),
+              Align(
+                alignment: Alignment.center,
+                child: TextButton(
+                  onPressed: isSubmitting ? null : resendEmailCode,
+                  child: const Text(
+                    'Resend Code',
+                    style: TextStyle(color: accentColor),
+                  ),
+                ),
+              ),
+            ]
+          : [
+              // PERSONAL INFO
+              buildTextField(nameController, 'Full Name', Icons.person),
+              buildTextField(emailController, 'Email', Icons.email,
+                  type: TextInputType.emailAddress),
+              buildTextField(phoneController, 'Phone Number', Icons.phone,
+                  type: TextInputType.phone),
+              buildTextField(dobController, 'Date of Birth', Icons.cake,
+                  readOnly: true, onTap: () => pickDate(context, dobController)),
+              buildTextField(studentIdController, 'LU Student ID', Icons.badge,
+                  type: TextInputType.number),
 
-        // COMMITTEE INFO
-        buildDropdown('Committee Year', Icons.calendar_today, committeeYear,
-            years, (value) => setState(() => committeeYear = value)),
+              // COMMITTEE INFO
+              buildDropdown('Committee Year', Icons.calendar_today,
+                  committeeYear, years,
+                  (value) => setState(() => committeeYear = value)),
 
-        buildDropdown(
-          'Committee Type',
-          Icons.groups,
-          committeeType,
-          positions.keys.toList(),
-          (value) {
-            setState(() {
-              committeeType = value;
-              position = null; // reset position when type changes
-            });
-          },
-        ),
+              buildDropdown(
+                'Committee Type',
+                Icons.groups,
+                committeeType,
+                positions.keys.toList(),
+                (value) {
+                  setState(() {
+                    committeeType = value;
+                    position = null; // reset position when type changes
+                  });
+                },
+              ),
 
-        // Disabled until a committee type is chosen
-        buildDropdown(
-          committeeType == null
-              ? 'Position (select committee type first)'
-              : 'Position',
-          Icons.work,
-          position,
-          positionList,
-          committeeType == null
-              ? null
-              : (value) => setState(() => position = value),
-        ),
+              // Disabled until a committee type is chosen
+              buildDropdown(
+                committeeType == null
+                    ? 'Position (select committee type first)'
+                    : 'Position',
+                Icons.work,
+                position,
+                positionList,
+                committeeType == null
+                    ? null
+                    : (value) => setState(() => position = value),
+              ),
 
-        // PASSWORDS
-        PasswordField(controller: passwordController),
-        PasswordField(controller: confirmController, label: 'Confirm Password'),
+              // PASSWORDS
+              PasswordField(controller: passwordController),
+              PasswordField(
+                  controller: confirmController, label: 'Confirm Password'),
 
-        const SizedBox(height: 9),
-        buildPrimaryButton('Create Account', signUp),
-      ],
+              const SizedBox(height: 9),
+              buildPrimaryButton(
+                isSubmitting ? 'Creating Account...' : 'Create Account',
+                signUp,
+              ),
+            ],
     );
   }
 }

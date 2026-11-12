@@ -5,6 +5,7 @@ import "package:lursconnect/screens/signup_screen.dart";
 import "package:supabase_flutter/supabase_flutter.dart";
 import "package:lursconnect/screens/forgot_password_screen.dart";
 import "package:lursconnect/screens/home_screen.dart";
+import "package:shared_preferences/shared_preferences.dart";
 
 void main() async {
   
@@ -19,12 +20,40 @@ void main() async {
     
 
   );
+
+  const rememberMeKey = 'remember_me';
+  final preferences = await SharedPreferences.getInstance();
+  final rememberMe = preferences.getBool(rememberMeKey) ?? false;
+  final client = Supabase.instance.client;
+  final savedSession = client.auth.currentSession;
+  var initialRoute = '/login';
+
+  if (rememberMe && savedSession != null) {
+    try {
+      final profile = await client
+          .from('profiles')
+          .select('status')
+          .eq('id', savedSession.user.id)
+          .maybeSingle();
+      if (profile != null && profile['status'] != 'suspended') {
+        initialRoute = '/home';
+      }
+    } on Exception catch (_) {
+      initialRoute = '/login';
+    }
+  }
+
+  if (initialRoute != '/home' && savedSession != null) {
+    await client.auth.signOut();
+  }
   
-  runApp(const lursConnect());
+  runApp(lursConnect(initialRoute: initialRoute));
 }
 
 class lursConnect extends StatefulWidget {
-  const lursConnect({super.key});
+  final String initialRoute;
+
+  const lursConnect({super.key, this.initialRoute = '/login'});
 
   @override
   State<lursConnect> createState() => _LursConnectState();
@@ -49,7 +78,7 @@ class _LursConnectState extends State<lursConnect> {
     return MaterialApp(
       title: 'LURS Connect',
       debugShowCheckedModeBanner: false,
-      initialRoute: "/login",
+      initialRoute: widget.initialRoute,
       routes: {
         "/login": (context) => const LoginScreen(),
         "/signup": (context) => const SignUpScreen(),

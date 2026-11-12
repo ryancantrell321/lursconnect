@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../mechanisms/auth_helpers.dart';
+import '../mechanisms/auth_validator.dart';
 import "package:supabase_flutter/supabase_flutter.dart";
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,6 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    // Check email format locally. Existing passwords are left to Supabase to
+    // verify, so a later signup rule change cannot block an existing account.
+    final validationMessage = AuthValidator.email(emailController.text);
+    if (validationMessage != null) {
+      showMessage(context, validationMessage);
+      return;
+    }
+
     try {
       await supabase.auth.signInWithPassword(
         email: emailController.text.trim(),
@@ -34,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (!mounted) return;
-      
+
       final userId = supabase.auth.currentUser!.id;
       final profile = await supabase
           .from('profiles')
@@ -42,12 +52,16 @@ class _LoginScreenState extends State<LoginScreen> {
           .eq('id', userId)
           .single();
 
-      if (profile['status'] != 'active') {
+      if (profile['status'] == 'suspended') {
         await supabase.auth.signOut();
         if (!mounted) return;
-        showMessage(context, 'Your account is ${profile['status']}. Please wait for admin approval.');
+        showMessage(context, 'Your account is suspended.');
         return;
       }
+
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setBool('remember_me', rememberMe);
+
       goToHome(context);
     } on AuthException catch (e) {
       if (!mounted) return;
