@@ -1,17 +1,9 @@
-# lursconnect
+# LURS Connect
 
-A new Flutter project.
+StudentID: 0182420012101240
 
-## Getting Started
+Partially complete application for Leading University Research Society
+Developed to meet the requirements of the Lab final of the course Smartphone Application Development.
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+This application supports authentication through supabase, and CRUD operations
+Developed with the help of Claude Sonnet 5.5 And OpenAI GPT-6 Luna
