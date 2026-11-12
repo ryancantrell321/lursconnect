@@ -1,7 +1,3 @@
-/// Returns graph nodes in iterative depth-first order.
-///
-/// Each list in [graph] contains the neighboring node indexes. The traversal
-/// follows the stack-based approach used in DFS_iterative.cpp.
 List<int> depthFirstSearch(List<List<int>> graph, int start) {
   if (start < 0 || start >= graph.length) {
     throw RangeError('Start node $start is outside the graph.');

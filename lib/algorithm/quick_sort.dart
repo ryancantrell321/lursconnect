@@ -1,5 +1,3 @@
-/// Sorts [items] in place using the recursive Lomuto quicksort from
-/// quick_sort.cpp. [compare] should return a negative, zero, or positive value.
 void quickSort<T>(List<T> items, int Function(T left, T right) compare) {
   if (items.length < 2) return;
   _quickSort(items, 0, items.length - 1, compare);

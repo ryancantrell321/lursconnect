@@ -513,7 +513,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 Expanded(
                   flex: 2,
                   child: DropdownButtonFormField<String>(
-                    value: _sortOption,
+                    initialValue: _sortOption,
                     isExpanded: true,
                     decoration: InputDecoration(
                       labelText: 'Sort by',

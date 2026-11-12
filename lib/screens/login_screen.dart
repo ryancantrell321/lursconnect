@@ -29,11 +29,17 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Check email format locally. Existing passwords are left to Supabase to
-    // verify, so a later signup rule change cannot block an existing account.
+    // Email validation
     final validationMessage = AuthValidator.email(emailController.text);
     if (validationMessage != null) {
       showMessage(context, validationMessage);
+      return;
+    }
+
+    // Password validation
+    final passwordMessage = AuthValidator.password(passwordController.text);
+    if (passwordMessage != null) {
+      showMessage(context, passwordMessage);
       return;
     }
 

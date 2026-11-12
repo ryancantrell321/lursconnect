@@ -253,7 +253,7 @@ Widget buildDropdown(
   return Padding(
     padding: const EdgeInsets.only(bottom: 16),
     child: DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       isExpanded: true,
       dropdownColor: const Color(0xFF0B1E4B),
       iconEnabledColor: Colors.white70,
