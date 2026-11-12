@@ -17,8 +17,6 @@ void main() async {
   await Supabase.initialize(
     url: "https://jtnzvmifnboddwniadin.supabase.co",
     publishableKey: "sb_publishable_YzNhtBCMdxD21m12DCcM2A_NETUqj6E"
-    
-
   );
 
   const rememberMeKey = 'remember_me';
