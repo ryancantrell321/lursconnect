@@ -1,8 +1,5 @@
-/// Small, shared format checks for the signup and login forms.
-///
-/// Each method returns `null` when the value is valid, or a short message the
-/// screen can show when it is not. Keeping the rules here makes both screens
-/// use the same checks and keeps their submit methods easy to read.
+// Small, shared format checks for the signup and login forms.
+
 class AuthValidator {
   // A practical email check: text before and after `@`, plus a domain suffix.
   static final RegExp _emailPattern =
